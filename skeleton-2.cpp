@@ -126,127 +126,38 @@ void graph::addNode(node* newNode) {
         nodes.addBack(newNode);
 }
 
-graph createGraph(pokemon* pikachu, pokemon* blastoise, int depth){
-	
-		int node_count = 0;
+graph createGraphRecursively(pokemon* pikachu, pokemon* blastoise, int depth, node* parentNode, int& node_count) {
+    // Base case: depth is 0 or one of the Pokemon's HP is zero
+    if (depth == 0 || pikachu->hp <= 0 || blastoise->hp <= 0) {
+        graph g;
+        g.addNode(parentNode);
+        return g;
+    }
 
-		graph match; //graph that holds the nodes of each possible move in the match
-		node* initialNode = new node("initial", "initial", node_count++, pikachu, blastoise, 'p', 0, true, 1); 	//initial node is defined here
-		match.addNode(initialNode);
-
-		for(int i = 0;i < depth; i++){ //for loop is repeated for the number of times specified by the parameter from the command line prompt and limited by the max
-			
-			//cout << "i: " << i << endl;							//FOR DEBUG
-
-			int temp = match.nodes.elemcount;
-			for(int j = 0; j < temp; j++){
-				
-				//cout << "j: " << j << endl;						//FOR DEBUG
-				if(match.nodes.get(j)->isleaf && match.nodes.get(j)->pikachu->hp > 0 && match.nodes.get(j)->blastoise->hp > 0){			//this is a loop that choses the leaf nodes that has the pokemons alive and makes the next attack moves and updates the leaves.
-					match.nodes.get(j)->isleaf=false;	//since there are new child nodes this node will no longer be a leaf
-					
-					if (match.nodes.get(j)->status=='p'){
-						//if it is pikachus turn perform each of pikachus available attacks
-
-						//counting the number of avaliable attacks
-						int num_of_available_attacks = 0;
-						if (match.nodes.get(j)->level >= 3){num_of_available_attacks++;}
-						if (match.nodes.get(j)->pikachu->pp>=10){num_of_available_attacks++;}
-						if (match.nodes.get(j)->pikachu->pp>=20){num_of_available_attacks++;}
-						if (match.nodes.get(j)->pikachu->pp>=25){num_of_available_attacks++;}
-						//cout << num_of_available_attacks << endl;  //FOR DEBUG
-
-						for (int p = 0; p < pikachu->attacks.elemcount; p++){
-							if (pikachu->attacks.get(p)->get_accuracy() != 100){
-								//creating new pokemons with calculated pp and hp values
-								pokemon* hit_blastoise = new pokemon("blastoise", match.nodes.get(j)->blastoise->pp,match.nodes.get(j)->blastoise->hp-pikachu->attacks.get(p)->get_damage());
-								pokemon* dodged_blastoise = new pokemon("blastoise", match.nodes.get(j)->blastoise->pp,match.nodes.get(j)->blastoise->hp);
-								pokemon* newPikachu = new pokemon("pikachu", match.nodes.get(j)->pikachu->pp + pikachu->attacks.get(p)->get_pp(), match.nodes.get(j)->pikachu->hp);
-								
-								if (pikachu->attacks.get(p)->get_first() <= match.nodes.get(j)->level){  //checking if the first level that the attack can be used is reached
-									if(newPikachu->pp >= 0){	//if pp has fallen below zero the move is not permissable so do not create the node 
-									
-										//creating the new node for each attack and adding to the nodes
-										node* newNode_success = new node("efficient", pikachu->attacks.get(p)->get_name(), node_count++, newPikachu, hit_blastoise,'b', match.nodes.get(j)->level+1, true, match.nodes.get(j)->prob*pikachu->attacks.get(p)->get_accuracy()/100/num_of_available_attacks);
-										node* newNode_fail = new node("nonefficent", pikachu->attacks.get(p)->get_name(), node_count++,newPikachu, dodged_blastoise,'b', match.nodes.get(j)->level+1, true, match.nodes.get(j)->prob*(100-pikachu->attacks.get(p)->get_accuracy())/100/num_of_available_attacks);
-										match.addNode(newNode_success);
-										match.addNode(newNode_fail);
-										match.nodes.get(j)->child.addBack(newNode_success);
-										match.nodes.get(j)->child.addBack(newNode_fail);
-									}
-								}
-							}else{
-									//creating new pokemons with calculated pp and hp values
-									pokemon* hit_blastoise = new pokemon("blastoise", match.nodes.get(j)->blastoise->pp,match.nodes.get(j)->blastoise->hp-pikachu->attacks.get(p)->get_damage());
-									pokemon* newPikachu = new pokemon("pikachu", match.nodes.get(j)->pikachu->pp + pikachu->attacks.get(p)->get_pp(), match.nodes.get(j)->pikachu->hp);
-									
-									if (pikachu->attacks.get(p)->get_first() <= match.nodes.get(j)->level){  //checking if the first level that the attack can be used is reached
-
-										if(newPikachu->pp >= 0){	//if pp has fallen below zero the move is not permissable so do not create the node 
-											//creating the new node for each attack and adding to the nodes
-											node* newNode = new node("efficient", pikachu->attacks.get(p)->get_name(), node_count++, newPikachu, hit_blastoise,'b', match.nodes.get(j)->level+1, true, match.nodes.get(j)->prob*pikachu->attacks.get(p)->get_accuracy()/100/num_of_available_attacks);
-											match.addNode(newNode);
-											match.nodes.get(j)->child.addBack(newNode);
-										} 
-									} 
-								}
-						}
-
-					}else if (match.nodes.get(j)->status=='b'){
-						//if it is blastoits turn perform each of blastoits available attacks
-
-						//counting the number of avaliable attacks
-						int num_of_available_attacks = 0;
-						if (match.nodes.get(j)->level >= 3){num_of_available_attacks++;}
-						if (match.nodes.get(j)->blastoise->pp>=10){num_of_available_attacks++;}
-						if (match.nodes.get(j)->blastoise->pp>=20){num_of_available_attacks++;}
-						if (match.nodes.get(j)->blastoise->pp>=25){num_of_available_attacks++;}
-						//cout << num_of_available_attacks << endl;			//FOR DEBUG
-
-						for (int b = 0; b < blastoise->attacks.elemcount; b++){
-							if (blastoise->attacks.get(b)->get_accuracy() != 100){
-								//creating new pokemons with calculated pp and hp values
-								pokemon* hit_pikachu = new pokemon("pikachu", match.nodes.get(j)->pikachu->pp,match.nodes.get(j)->pikachu->hp-blastoise->attacks.get(b)->get_damage());
-								pokemon* dogded_pikachu = new pokemon("pikachu", match.nodes.get(j)->pikachu->pp,match.nodes.get(j)->pikachu->hp);
-								pokemon* newBlastoise = new pokemon("blastoise", match.nodes.get(j)->blastoise->pp + blastoise->attacks.get(b)->get_pp(), match.nodes.get(j)->blastoise->hp);
-								
-								if (blastoise->attacks.get(b)->get_first() <= match.nodes.get(j)->level){  //checking if the first level that the attack can be used is reached
-									if(newBlastoise->pp >= 0){	//if pp has fallen below zero the move is not permissable so do not create the node 
-										//creating the new node for each attack and adding to the nodes
-										node* newNode_success = new node("efficient", blastoise->attacks.get(b)->get_name(), node_count++, hit_pikachu, newBlastoise,'p', match.nodes.get(j)->level+1, true, match.nodes.get(j)->prob*blastoise->attacks.get(b)->get_accuracy()/100/num_of_available_attacks);
-										node* newNode_fail = new node("nonefficient", blastoise->attacks.get(b)->get_name(), node_count++, dogded_pikachu, newBlastoise,'p', match.nodes.get(j)->level+1, true, match.nodes.get(j)->prob*(100-blastoise->attacks.get(b)->get_accuracy())/100/num_of_available_attacks);
-										match.addNode(newNode_success);
-										match.addNode(newNode_fail);
-										match.nodes.get(j)->child.addBack(newNode_success);
-										match.nodes.get(j)->child.addBack(newNode_fail);
-									}
-							}}else {
-								//creating new pokemons with calculated pp and hp values
-								pokemon* hit_pikachu = new pokemon("pikachu", match.nodes.get(j)->pikachu->pp,match.nodes.get(j)->pikachu->hp-blastoise->attacks.get(b)->get_damage());
-								pokemon* newBlastoise = new pokemon("blastoise", match.nodes.get(j)->blastoise->pp + blastoise->attacks.get(b)->get_pp(), match.nodes.get(j)->blastoise->hp);
-								
-								if (blastoise->attacks.get(b)->get_first() <= match.nodes.get(j)->level){  //checking if the first level that the attack can be used is reached
-									if(newBlastoise->pp >= 0){	//if pp has fallen below zero the move is not permissable so do not create the node 
-										//creating the new node for each attack and adding to the nodes
-										node* newNode = new node("efficient", blastoise->attacks.get(b)->get_name(), node_count++, hit_pikachu, newBlastoise,'p', match.nodes.get(j)->level+1, true, match.nodes.get(j)->prob*blastoise->attacks.get(b)->get_accuracy()/100/num_of_available_attacks);
-										match.addNode(newNode);								
-										match.nodes.get(j)->child.addBack(newNode);
-									}
-								}
-							}
-						}
-
-
-					}
-
-				}//else {cout << "leaf olmayan bir nodu geçtim." << endl;} //FOR DEBUG
-			}
-
-			
-		}
-
-	return match;
+    graph g;
+    for (int i = 0; i < parentNode->pikachu->attacks.elemcount; ++i) {
+        attack* pikachu_attack = parentNode->pikachu->attacks.get(i);
+        // Create nodes for successful and failed attacks
+        if (pikachu_attack->get_first() <= parentNode->level) {
+            pokemon* newPikachu = new pokemon("pikachu", parentNode->pikachu->pp + pikachu_attack->get_pp(), parentNode->pikachu->hp);
+            pokemon* hit_blastoise = new pokemon("blastoise", parentNode->blastoise->pp, parentNode->blastoise->hp - pikachu_attack->get_damage());
+            pokemon* dodged_blastoise = new pokemon("blastoise", parentNode->blastoise->pp, parentNode->blastoise->hp);
+            node* newNode_success = new node("efficient", pikachu_attack->get_name(), node_count++, newPikachu, hit_blastoise, 'b', parentNode->level + 1, true, parentNode->prob * pikachu_attack->get_accuracy() / 100);
+            node* newNode_fail = new node("nonefficient", pikachu_attack->get_name(), node_count++, newPikachu, dodged_blastoise, 'b', parentNode->level + 1, true, parentNode->prob * (100 - pikachu_attack->get_accuracy()) / 100);
+            g.addNode(newNode_success);
+            g.addNode(newNode_fail);
+            parentNode->child.addBack(newNode_success);
+            parentNode->child.addBack(newNode_fail);
+            graph subGraph = createGraphRecursively(pikachu, blastoise, depth - 1, newNode_success, node_count);
+            // Concatenate nodes from subgraph to the main graph
+            for (int j = 0; j < subGraph.nodes.elemcount; ++j) {
+                g.addNode(subGraph.nodes.get(j));
+            }
+        }
+    }
+    return g;
 }
+
 
 void printLastLayer(graph match, int max){	
 	for(int d = 0; d < match.nodes.elemcount; d++){
