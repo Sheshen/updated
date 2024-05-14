@@ -126,88 +126,142 @@ void graph::addNode(node* newNode) {
         nodes.addBack(newNode);
 }
 
-graph createGraphRecursively(pokemon* pikachu, pokemon* blastoise, int depth, node* parentNode, int& node_count) {
-    // Base case: depth is 0 or one of the Pokemon's HP is zero
-    if (depth == 0 || pikachu->hp <= 0 || blastoise->hp <= 0) {
-        graph g;
-        g.addNode(parentNode);
-        return g;
-    }
+void createGraphRecursively(int depth, node* head){
 
-    graph g;
-    for (int i = 0; i < parentNode->pikachu->attacks.elemcount; ++i) {
-        attack* pikachu_attack = parentNode->pikachu->attacks.get(i);
-        // Create nodes for successful and failed attacks
-        if (pikachu_attack->get_first() <= parentNode->level) {
-            pokemon* newPikachu = new pokemon("pikachu", parentNode->pikachu->pp + pikachu_attack->get_pp(), parentNode->pikachu->hp);
-            pokemon* hit_blastoise = new pokemon("blastoise", parentNode->blastoise->pp, parentNode->blastoise->hp - pikachu_attack->get_damage());
-            pokemon* dodged_blastoise = new pokemon("blastoise", parentNode->blastoise->pp, parentNode->blastoise->hp);
-            node* newNode_success = new node("efficient", pikachu_attack->get_name(), node_count++, newPikachu, hit_blastoise, 'b', parentNode->level + 1, true, parentNode->prob * pikachu_attack->get_accuracy() / 100);
-            node* newNode_fail = new node("nonefficient", pikachu_attack->get_name(), node_count++, newPikachu, dodged_blastoise, 'b', parentNode->level + 1, true, parentNode->prob * (100 - pikachu_attack->get_accuracy()) / 100);
-            g.addNode(newNode_success);
-            g.addNode(newNode_fail);
-            parentNode->child.addBack(newNode_success);
-            parentNode->child.addBack(newNode_fail);
-            graph subGraph = createGraphRecursively(pikachu, blastoise, depth - 1, newNode_success, node_count);
-            // Concatenate nodes from subgraph to the main graph
-            for (int j = 0; j < subGraph.nodes.elemcount; ++j) {
-                g.addNode(subGraph.nodes.get(j));
-            }
-        }
-    }
-    return g;
-}
+		pokemon* blastoise = head->blastoise;
+		pokemon* pikachu = head->pikachu;
+		int node_count = head->num;
+
+		//cout << head->blastoise << " - " << head->child.elemcount << " - " << head->curattack << " - " << head->ifef << " - " << head->isleaf << " - " << head->level << " - " << head->num << " - " << head->pikachu << " - " << head->prob << " - " << head->status << endl;
+		cout << head->isleaf << " pikachu hp: " << pikachu->hp << " blastoise hp: " << blastoise->hp << " level: "<< head->level << " depth: "<< depth << endl;
+		if(head->isleaf && pikachu->hp > 0 && blastoise->hp > 0 && head->level < depth){
+			cout << "buradayım" << endl;
+			head->isleaf=false;	//since there are new child nodes this node will no longer be a leaf
+			
+			if (head->status=='p'){
+				//if it is pikachus turn perform each of pikachus available attacks
+
+				//counting the number of avaliable attacks
+				int num_of_available_attacks = 0;
+				if (head->level >= 3){num_of_available_attacks++;}
+				if (pikachu->pp>=10){num_of_available_attacks++;}
+				if (pikachu->pp>=20){num_of_available_attacks++;}
+				if (pikachu->pp>=25){num_of_available_attacks++;}
+				//cout << num_of_available_attacks << endl;  //FOR DEBUG
+
+				for (int p = 0; p < pikachu->attacks.elemcount; p++){
+					if (pikachu->attacks.get(p)->get_accuracy() != 100){
+						//creating new pokemons with calculated pp and hp values
+						pokemon* hit_blastoise = new pokemon("blastoise", blastoise->pp,blastoise->hp-pikachu->attacks.get(p)->get_damage());
+						pokemon* dodged_blastoise = new pokemon("blastoise", blastoise->pp,blastoise->hp);
+						pokemon* newPikachu = new pokemon("pikachu", pikachu->pp + pikachu->attacks.get(p)->get_pp(), pikachu->hp);
+						
+						if (pikachu->attacks.get(p)->get_first() <= head->level){  //checking if the first level that the attack can be used is reached
+							if(newPikachu->pp >= 0){	//if pp has fallen below zero the move is not permissable so do not create the node 
+							
+								//creating the new node for each attack and adding to the nodes
+								node* newNode_success = new node("efficient", pikachu->attacks.get(p)->get_name(), node_count++, newPikachu, hit_blastoise,'b', head->level+1, true, head->prob*pikachu->attacks.get(p)->get_accuracy()/100/num_of_available_attacks);
+								node* newNode_fail = new node("nonefficent", pikachu->attacks.get(p)->get_name(), node_count++,newPikachu, dodged_blastoise,'b', head->level+1, true, head->prob*(100-pikachu->attacks.get(p)->get_accuracy())/100/num_of_available_attacks);
+								cout << "hatta burada p" << endl;
+								createGraphRecursively(depth, newNode_success);
+								createGraphRecursively(depth, newNode_fail);
+								head->child.addBack(newNode_success);
+								head->child.addBack(newNode_fail);
+
+							}
+						}
+					}else{
+							//creating new pokemons with calculated pp and hp values
+							pokemon* hit_blastoise = new pokemon("blastoise", blastoise->pp,blastoise->hp-pikachu->attacks.get(p)->get_damage());
+							pokemon* newPikachu = new pokemon("pikachu", pikachu->pp + pikachu->attacks.get(p)->get_pp(), pikachu->hp);
+							
+							if (pikachu->attacks.get(p)->get_first() <= head->level){  //checking if the first level that the attack can be used is reached
+
+								if(newPikachu->pp >= 0){	//if pp has fallen below zero the move is not permissable so do not create the node 
+									//creating the new node for each attack and adding to the nodes
+									node* newNode = new node("efficient", pikachu->attacks.get(p)->get_name(), node_count++, newPikachu, hit_blastoise,'b', head->level+1, true, head->prob*pikachu->attacks.get(p)->get_accuracy()/100/num_of_available_attacks);
+									head->child.addBack(newNode);
+									createGraphRecursively(depth, newNode);
+								} 
+							} 
+						}
+				}
+
+			}else if (head->status=='b'){
+				//if it is blastoits turn perform each of blastoits available attacks
+
+				
+				//counting the number of avaliable attacks
+				int num_of_available_attacks = 0;
+				if (head->level >= 3){num_of_available_attacks++;}
+				if (blastoise->pp>=10){num_of_available_attacks++;}
+				if (blastoise->pp>=20){num_of_available_attacks++;}
+				if (blastoise->pp>=25){num_of_available_attacks++;}
+				//cout << num_of_available_attacks << endl;			//FOR DEBUG
 
 
-void printLastLayer(graph match, int max){	
-	for(int d = 0; d < match.nodes.elemcount; d++){
-			if (match.nodes.get(d)->level == max){
-					cout << "P_HP:"<< match.nodes.get(d)->pikachu->hp << " P_PP:" << match.nodes.get(d)->pikachu->pp << " B_HP:" << match.nodes.get(d)->blastoise->hp << " B_PP:" << match.nodes.get(d)->blastoise->pp << " PROB:"<<match.nodes.get(d)->prob << endl;
+				for (int b = 0; b < blastoise->attacks.elemcount; b++){
+					if (blastoise->attacks.get(b)->get_accuracy() != 100){
+						//creating new pokemons with calculated pp and hp values
+						pokemon* hit_pikachu = new pokemon("pikachu", pikachu->pp,pikachu->hp-blastoise->attacks.get(b)->get_damage());
+						pokemon* dogded_pikachu = new pokemon("pikachu", pikachu->pp,pikachu->hp);
+						pokemon* newBlastoise = new pokemon("blastoise", blastoise->pp + blastoise->attacks.get(b)->get_pp(), blastoise->hp);
+						
+						if (blastoise->attacks.get(b)->get_first() <= head->level){  //checking if the first level that the attack can be used is reached
+							if(newBlastoise->pp >= 0){	//if pp has fallen below zero the move is not permissable so do not create the node 
+								//creating the new node for each attack and adding to the nodes
+								node* newNode_success = new node("efficient", blastoise->attacks.get(b)->get_name(), node_count++, hit_pikachu, newBlastoise,'p', head->level+1, true, head->prob*blastoise->attacks.get(b)->get_accuracy()/100/num_of_available_attacks);
+								node* newNode_fail = new node("nonefficient", blastoise->attacks.get(b)->get_name(), node_count++, dogded_pikachu, newBlastoise,'p', head->level+1, true, head->prob*(100-blastoise->attacks.get(b)->get_accuracy())/100/num_of_available_attacks);
+								head->child.addBack(newNode_success);
+								head->child.addBack(newNode_fail);
+								cout << "hatta burada b" << endl;
+								createGraphRecursively(depth, newNode_success);
+								createGraphRecursively(depth, newNode_fail);
+							}
+					}}else {
+						//creating new pokemons with calculated pp and hp values
+						pokemon* hit_pikachu = new pokemon("pikachu", pikachu->pp,pikachu->hp-blastoise->attacks.get(b)->get_damage());
+						pokemon* newBlastoise = new pokemon("blastoise", blastoise->pp + blastoise->attacks.get(b)->get_pp(), blastoise->hp);
+						
+						if (blastoise->attacks.get(b)->get_first() <= head->level){  //checking if the first level that the attack can be used is reached
+							if(newBlastoise->pp >= 0){	//if pp has fallen below zero the move is not permissable so do not create the node 
+								//creating the new node for each attack and adding to the nodes
+								node* newNode = new node("efficient", blastoise->attacks.get(b)->get_name(), node_count++, hit_pikachu, newBlastoise,'p', head->level+1, true, head->prob*blastoise->attacks.get(b)->get_accuracy()/100/num_of_available_attacks);
+								head->child.addBack(newNode);
+								createGraphRecursively(depth, newNode);
+							}
+						}
+					}
+				}
+
+
 			}
+
 		}
+
 }
 
-void dfs(node* currNode, DoublyList<node*>& path, DoublyList<node*>& easiestPath, char* pika_or_blastoise) {
+node* createGraph(pokemon* pikachu, pokemon* blastoise, int depth){
 	
-	if (pika_or_blastoise = "pikachu"){
-		if (currNode->pikachu->hp <= 0){
-			if (easiestPath.elemcount == 0 || path.elemcount < easiestPath.elemcount) {
-            easiestPath = path;
-        	}
-        	return;
-		}
+		int node_count = 0;
 
-	}else if (pika_or_blastoise = "blastoise"){
-		if (currNode->blastoise->hp <= 0){
-			if (easiestPath.elemcount == 0 || path.elemcount < easiestPath.elemcount) {
-            easiestPath = path;
-        	}
-        	return;
-		}
-	}
+		node* initialNode = new node("initial", "initial", node_count++, pikachu, blastoise, 'p', 0, true, 1); 	//initial node is defined here
+		createGraphRecursively(depth, initialNode);
 
-    for (int i = 0; i < currNode->child.elemcount; ++i) {
-        node* child = currNode->child.get(i);
-        path.addBack(child);
-        dfs(child, path, easiestPath, pika_or_blastoise);
-        path.removeBack();
-    }
+		return initialNode;
 }
 
-void easiestPath(char* pika_or_blastoise, graph match) {
-    DoublyList<node*> path;
-    DoublyList<node*> easiestPath;
-    node* initialNode = match.nodes.get(0);
-    path.addBack(initialNode);
-    dfs(initialNode, path, easiestPath, pika_or_blastoise);
-
-	cout << "Easiest path: ";
-    for (int i = 0; i < easiestPath.elemcount; ++i) {
-        node* n = easiestPath.get(i);
-        cout << n->curattack << " -> ";
-    }
-    cout << "End" << endl;
-
+void printLastLayer(node* head, int max, int depth=0){	
+	if(depth == max){
+        cout << "P_HP:" << head->pikachu->hp << " P_PP:" << head->pikachu->pp << " B_HP:" << head->blastoise->hp << " B_PP:" << head->blastoise->pp << " PROB:" << head->prob << "\n";
+	}else {
+		cout << "depth: " << depth<< ", max: " << max << ", child count: "<<head->child.elemcount << endl;
+		Node<node*>* traversal_node = head->child.head;
+        for (int i = 0; i < head->child.elemcount; i++) {
+            printLastLayer(traversal_node->data, max, depth + 1);
+			traversal_node = traversal_node->next;
+        }
+	}
 }
 
 int main(int argc, char** argv){
@@ -250,12 +304,11 @@ int main(int argc, char** argv){
 
 	
 	if(part == "part1"){		
-		graph match = createGraph(pikachu, blastoise, max);
-		printLastLayer(match, max);
+		node* head = createGraph(pikachu, blastoise, max);
+		//printLastLayer(head, max);
 	}else if(part == "part2"){
 		pika_or_blastoise = argv[2];
-		graph match = createGraph(pikachu, blastoise, 8);
-		easiestPath(pika_or_blastoise, match);
+		node* head = createGraph(pikachu, blastoise, max);
 	}else
 		return -1;
 
